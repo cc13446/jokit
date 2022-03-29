@@ -1,7 +1,9 @@
 package com.cc.jokit;
 
 import com.cc.jokit.tcpServer.TcpServer;
+import com.cc.jokit.tcpServer.TcpServerException;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -14,8 +16,9 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.net.InetSocketAddress;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class Jokit extends Application {
 
@@ -48,7 +51,7 @@ public class Jokit extends Application {
     private final static VBox serverInputVBox = new VBox();
 
     //server clients
-    private final static List<CheckBox> serverClients = new LinkedList<>();
+    private final static Map<CheckBox, InetSocketAddress> serverClients = new HashMap<>();
     private final static VBox serverClientsVBox = new VBox();
     private final static ScrollPane serverClientsScrollPane = new ScrollPane();
     private final static Button serverClientsControlSelectAll = new Button("选择全部");
@@ -70,7 +73,7 @@ public class Jokit extends Application {
     private final static VBox serverSendVBox = new VBox();
 
     //server output
-    private final static TextField serverOutput = new TextField();
+    private final static TextArea serverOutput = new TextArea();
 
     private final static VBox serverVBox = new VBox();
 
@@ -98,7 +101,7 @@ public class Jokit extends Application {
     private final static HBox clientBufferAsciiHBox = new HBox();
 
     //client output
-    private final static TextField clientOutput = new TextField();
+    private final static TextArea clientOutput = new TextArea();
 
     private final static VBox clientSendVBox = new VBox();
 
@@ -131,8 +134,17 @@ public class Jokit extends Application {
             if (null == tcpServer) {
                 try {
                     tcpServer = new TcpServer(serverTcpAddrComboBox.getValue(), Utils.parsePort(serverTcpPortTextField.getText()));
+                    tcpServer.addIncomingListener(address ->
+                            Platform.runLater(() -> {
+                                String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                                CheckBox newBox = new CheckBox(temp);
+                                serverClients.put(newBox, address);
+                                serverClientsVBox.getChildren().add(newBox);
+                                serverAppendLog("TCP连接:" + temp);
+                            })
+                    );
                     tcpServer.start();
-                } catch (JokitException exception) {
+                } catch (TcpServerException exception) {
                     serverAppendLog(exception.getMessage());
                 }
             }
@@ -164,7 +176,7 @@ public class Jokit extends Application {
         serverInputVBox.setSpacing(5);
 
         //server clients
-        serverClientsVBox.getChildren().addAll(serverClients);
+        serverClientsVBox.getChildren().addAll(serverClients.keySet());
         serverClientsVBox.setSpacing(2);
 
         serverClientsScrollPane.setPrefHeight(57);
@@ -283,9 +295,9 @@ public class Jokit extends Application {
         stage.show();
     }
 
-    public void serverAppendLog(String log) {
+    public void serverAppendLog(String msg) {
         String old = serverOutput.getText();
-        serverOutput.setText(old + "\n" + log);
+        serverOutput.setText(old + Utils.generateLog(msg));
     }
 
 }

@@ -1,9 +1,10 @@
 package com.cc.jokit;
 
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
+import com.cc.jokit.tcpServer.TcpServerException;
+
+import java.net.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
@@ -50,17 +51,17 @@ public class Utils {
         return true;
     }
 
-    public static int parsePort(String port) throws JokitException {
+    public static int parsePort(String port) throws TcpServerException {
 
         if (port.equals("")) {
-            throw new JokitException("Port格式错误:" + port);
+            throw new TcpServerException("Port格式错误:" + port);
         }
         int res;
         try {
             res = Integer.parseInt(port);
-            if (res < 0 || res > 65535) throw new JokitException("Port格式错误:" + port);
+            if (res < 0 || res > 65535) throw new TcpServerException("Port格式错误:" + port);
         } catch (NumberFormatException e) {
-            throw new JokitException("Port格式错误:" + port);
+            throw new TcpServerException("Port格式错误:" + port);
         }
 
         return res;
@@ -88,4 +89,12 @@ public class Utils {
         return res;
     }
 
+    public static String parseHostAndPort(InetAddress address, int port) {
+        return address.getHostAddress() + ":" + port;
+    }
+
+    public static String generateLog(String msg) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm:ss");
+        return simpleDateFormat.format(new Date()) + " " + msg + "\n";
+    }
 }

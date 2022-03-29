@@ -5,10 +5,17 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 public class TcpServerHandler extends ChannelInboundHandlerAdapter {
+    private final TcpEventListener tcpEventListener;
+
+    public TcpServerHandler(TcpEventListener tcpEventListener) {
+        this.tcpEventListener = tcpEventListener;
+    }
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         NioSocketChannel socketChannel = (NioSocketChannel) msg;
-        System.out.println(socketChannel.remoteAddress());
+        tcpEventListener.invokeIncomingListener(socketChannel.remoteAddress());
+        tcpEventListener.invokeIncomingRichListener(socketChannel.remoteAddress(), socketChannel);
     }
 
     @Override

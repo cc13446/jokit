@@ -9,35 +9,36 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TcpServerThread implements Callable<Void> {
 
-    private static volatile TcpServerThread tcpServerThread;
+    private volatile Channel serverChannel;
 
-    private static volatile Channel serverChannel;
+    public void closeServer() {
+        if (serverChannel != null) {
+            serverChannel.close();
+            serverChannel = null;
+        }
+    }
 
     private final String ip;
     private final int port;
+    private final Map<InetSocketAddress, NioSocketChannel> channelMap;
+    private final TcpEventListener tcpEventListener;
 
-
-    private TcpServerThread(String ip, int port) {
+    public TcpServerThread(String ip, int port,  TcpEventListener tcpEventListener) {
         super();
         this.ip = ip;
         this.port = port;
-    }
-
-    public static TcpServerThread getInstance(String ip, int port) {
-        if (tcpServerThread == null) {
-            synchronized (TcpServerThread.class) {
-                if (tcpServerThread == null) {
-                    tcpServerThread = new TcpServerThread(ip, port);
-                }
-            }
-        }
-        return tcpServerThread;
+        this.channelMap = new ConcurrentHashMap<>();
+        this.tcpEventListener = tcpEventListener;
+        this.tcpEventListener.addIncomingRichListener((channelMap::put));
     }
 
     public String getIp() {
@@ -46,13 +47,6 @@ public class TcpServerThread implements Callable<Void> {
 
     public int getPort() {
         return port;
-    }
-
-    public static void closeServer() {
-        if (serverChannel != null) {
-            serverChannel.close();
-            serverChannel = null;
-        }
     }
 
     @Override
@@ -69,10 +63,11 @@ public class TcpServerThread implements Callable<Void> {
                     .channel(NioServerSocketChannel.class)
                     .localAddress(new InetSocketAddress(ip, port))
                     .handler(new ChannelInitializer<ServerSocketChannel>() {
+
                         // 监听bind行为
                         @Override
                         protected void initChannel(ServerSocketChannel serverSocketChannel) {
-                            serverSocketChannel.pipeline().addLast(new TcpServerHandler());
+                            serverSocketChannel.pipeline().addLast(new TcpServerHandler(tcpEventListener));
                         }
                     })
                     .childHandler(new ChannelInitializer<SocketChannel>() {
