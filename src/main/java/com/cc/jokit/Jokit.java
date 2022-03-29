@@ -1,13 +1,12 @@
 package com.cc.jokit;
 
+import com.cc.jokit.tcpServer.TcpServer;
 import javafx.application.Application;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -20,81 +19,93 @@ import java.util.List;
 
 public class Jokit extends Application {
 
+    private final static String SERVER_TCP_BIND = "TCP监听";
+    private final static String SERVER_TCP_UNBIND = "TCP停止";
+    private final static String SERVER_UDP_BIND = "UDP监听";
+    private final static String SERVER_UDP_UNBIND = "UDP停止";
+
+    private final static String CLIENT_TCP_CONNECT = "TCP连接";
+    private final static String CLIENT_TCP_DISCONNECT = "TCP断开";
+    private final static String CLIENT_UDP_CONNECT = "UDP连接";
+    private final static String CLIENT_UDP_DISCONNECT = "UDP断开";
+
     // server
-    public final static Text serverTitle = new Text("Socket服务器");
+    private final static Text serverTitle = new Text("Socket服务器");
 
     // severInput
     // serverTCPInput
-    public final static TextField serverTcpAddrTextField = new TextField();
-    public final static TextField serverTcpPortTextField = new TextField();
-    public final static Button serverTcpButton = new Button("TCP服务器");
-    public final static HBox serverTcpHBox = new HBox();
+    private final static ComboBox<String> serverTcpAddrComboBox = new ComboBox<>();
+    private final static TextField serverTcpPortTextField = new TextField();
+    private final static Button serverTcpButton = new Button(SERVER_TCP_BIND);
+    private final static HBox serverTcpHBox = new HBox();
 
     // serverUDPInput
-    public final static TextField serverUdpAddrTextField = new TextField();
-    public final static TextField serverUdpPortTextField = new TextField();
-    public final static Button serverUdpButton = new Button("UDP服务器");
-    public final static HBox serverUdpHBox = new HBox();
+    private final static ComboBox<String> serverUdpAddrComboBox = new ComboBox<>();
+    private final static TextField serverUdpPortTextField = new TextField();
+    private final static Button serverUdpButton = new Button(SERVER_UDP_BIND);
+    private final static HBox serverUdpHBox = new HBox();
 
-    public final static VBox serverInputVBox = new VBox();
+    private final static VBox serverInputVBox = new VBox();
 
     //server clients
-    public final static List<CheckBox> serverClients = new LinkedList<>();
-    public final static VBox serverClientsVBox = new VBox();
-    public final static ScrollPane serverClientsScrollPane = new ScrollPane();
-    public final static Button serverClientsControlSelectAll = new Button("选择全部");
-    public final static Button serverClientsControlDisconnect = new Button("断开连接");
-    public final static VBox serverClientsControlVBox = new VBox();
-    public final static HBox serverClientsHBox = new HBox();
+    private final static List<CheckBox> serverClients = new LinkedList<>();
+    private final static VBox serverClientsVBox = new VBox();
+    private final static ScrollPane serverClientsScrollPane = new ScrollPane();
+    private final static Button serverClientsControlSelectAll = new Button("选择全部");
+    private final static Button serverClientsControlDisconnect = new Button("断开连接");
+    private final static VBox serverClientsControlVBox = new VBox();
+    private final static HBox serverClientsHBox = new HBox();
 
     //server send
     //server buffer
-    public final static TextField serverBufferTextField = new TextField();
-    public final static Button serverBufferSendButton = new Button("发送(UTF8)");
-    public final static HBox serverBufferHBox = new HBox();
+    private final static TextField serverBufferTextField = new TextField();
+    private final static Button serverBufferSendButton = new Button("发送(UTF8)");
+    private final static HBox serverBufferHBox = new HBox();
 
     //server ascii
-    public final static TextField serverBufferAsciiTextField = new TextField();
-    public final static Button serverBufferAsciiSendButton = new Button("发送(ASCII)");
-    public final static HBox serverBufferAsciiHBox = new HBox();
+    private final static TextField serverBufferAsciiTextField = new TextField();
+    private final static Button serverBufferAsciiSendButton = new Button("发送(ASCII)");
+    private final static HBox serverBufferAsciiHBox = new HBox();
 
-    public final static VBox serverSendVBox = new VBox();
+    private final static VBox serverSendVBox = new VBox();
 
     //server output
-    public final static TextField serverOutput = new TextField();
+    private final static TextField serverOutput = new TextField();
 
-    public final static VBox serverVBox = new VBox();
+    private final static VBox serverVBox = new VBox();
 
     // client
-    public final static Text clientTitle = new Text("Socket客户端");
+    private final static Text clientTitle = new Text("Socket客户端");
 
     // clientInput
-    public final static TextField clientAddrTextField = new TextField();
-    public final static TextField clientPortTextField = new TextField();
-    public final static Button clientTcpButton = new Button("TCP连接");
-    public final static Button clientUdpButton = new Button("Udp连接");
-    public final static HBox clientInputHBox = new HBox();
+    private final static TextField clientAddrTextField = new TextField();
+    private final static TextField clientPortTextField = new TextField();
+    private final static Button clientTcpButton = new Button(CLIENT_TCP_CONNECT);
+    private final static Button clientUdpButton = new Button(CLIENT_UDP_CONNECT);
+    private final static HBox clientInputHBox = new HBox();
 
-    public final static VBox clientVBox = new VBox();
+    private final static VBox clientVBox = new VBox();
 
     //client send
     //client buffer
-    public final static TextField clientBufferTextField = new TextField();
-    public final static Button clientBufferSendButton = new Button("发送(UTF8)");
-    public final static HBox clientBufferHBox = new HBox();
+    private final static TextField clientBufferTextField = new TextField();
+    private final static Button clientBufferSendButton = new Button("发送(UTF8)");
+    private final static HBox clientBufferHBox = new HBox();
 
     //client ascii
-    public final static TextField clientBufferAsciiTextField = new TextField();
-    public final static Button clientBufferAsciiSendButton = new Button("发送(ASCII)");
-    public final static HBox clientBufferAsciiHBox = new HBox();
+    private final static TextField clientBufferAsciiTextField = new TextField();
+    private final static Button clientBufferAsciiSendButton = new Button("发送(ASCII)");
+    private final static HBox clientBufferAsciiHBox = new HBox();
 
     //client output
-    public final static TextField clientOutput = new TextField();
+    private final static TextField clientOutput = new TextField();
 
-    public final static VBox clientSendVBox = new VBox();
+    private final static VBox clientSendVBox = new VBox();
 
     // application
-    public final static HBox hBox = new HBox();
+    private final static HBox hBox = new HBox();
+
+    private static TcpServer tcpServer = null;
 
     @Override
     public void start(Stage stage) {
@@ -104,11 +115,8 @@ public class Jokit extends Application {
 
         // severInput
         // serverTCPInput
-        serverTcpAddrTextField.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!Utils.isValidIP(newValue)) {
-                serverTcpAddrTextField.setText(oldValue);
-            }
-        });
+        serverTcpAddrComboBox.setItems(FXCollections.observableList(Utils.getLocalIP()));
+        serverTcpAddrComboBox.setPrefWidth(160);
 
         serverTcpPortTextField.setPrefSize(80, 20);
         serverTcpPortTextField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -119,17 +127,24 @@ public class Jokit extends Application {
 
         serverTcpButton.setMinWidth(80);
         serverTcpButton.setMinHeight(20);
+        serverTcpButton.setOnMouseClicked(e -> {
+            if (null == tcpServer) {
+                try {
+                    tcpServer = new TcpServer(serverTcpAddrComboBox.getValue(), Utils.parsePort(serverTcpPortTextField.getText()));
+                    tcpServer.start();
+                } catch (JokitException exception) {
+                    serverAppendLog(exception.getMessage());
+                }
+            }
+        });
 
-        serverTcpHBox.getChildren().addAll(serverTcpAddrTextField, serverTcpPortTextField, serverTcpButton);
-        HBox.setHgrow(serverTcpAddrTextField, Priority.SOMETIMES);
+        serverTcpHBox.getChildren().addAll(serverTcpAddrComboBox, serverTcpPortTextField, serverTcpButton);
+        HBox.setHgrow(serverTcpPortTextField, Priority.SOMETIMES);
         serverTcpHBox.setSpacing(3);
 
         // serverUDPInput
-        serverUdpAddrTextField.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!Utils.isValidIP(newValue)) {
-                serverUdpAddrTextField.setText(oldValue);
-            }
-        });
+        serverUdpAddrComboBox.setItems(FXCollections.observableList(Utils.getLocalIP()));
+        serverUdpAddrComboBox.setPrefWidth(160);
 
         serverUdpPortTextField.setPrefSize(80, 20);
         serverUdpPortTextField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -141,8 +156,8 @@ public class Jokit extends Application {
         serverUdpButton.setMinWidth(80);
         serverUdpButton.setMinHeight(20);
 
-        serverUdpHBox.getChildren().addAll(serverUdpAddrTextField, serverUdpPortTextField, serverUdpButton);
-        HBox.setHgrow(serverUdpAddrTextField, Priority.SOMETIMES);
+        serverUdpHBox.getChildren().addAll(serverUdpAddrComboBox, serverUdpPortTextField, serverUdpButton);
+        HBox.setHgrow(serverUdpPortTextField, Priority.SOMETIMES);
         serverUdpHBox.setSpacing(3);
 
         serverInputVBox.getChildren().addAll(serverTcpHBox, serverUdpHBox);
@@ -267,4 +282,10 @@ public class Jokit extends Application {
         stage.setMinWidth(800);
         stage.show();
     }
+
+    public void serverAppendLog(String log) {
+        String old = serverOutput.getText();
+        serverOutput.setText(old + "\n" + log);
+    }
+
 }

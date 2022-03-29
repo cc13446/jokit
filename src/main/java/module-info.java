@@ -3,4 +3,5 @@ module com.cc.jokit {
     requires javafx.graphics;
     requires io.netty.all;
     exports com.cc.jokit;
+    exports com.cc.jokit.tcpServer;
 }
