@@ -62,6 +62,10 @@ public class TcpServer {
     public void disconnect(InetSocketAddress address) throws TcpServerException {
         tcpServerThread.disconnect(address);
     }
+    public void write(InetSocketAddress address, String buffer) throws TcpServerException {
+        if(StringUtil.isNullOrEmpty(buffer)) return;
+        tcpServerThread.write(address, buffer);
+    }
 
     private void checkStateBeforeAddListener() throws TcpServerException {
         if(this.serverState != State.READY) throw new TcpServerException("服务器运行中，不允许添加Listener");
@@ -81,4 +85,15 @@ public class TcpServer {
         checkStateBeforeAddListener();
         tcpEventListener.addClientMessageListener(consumer);
     }
+
+    public void addClientWriteCompleteListener(BiConsumer<InetSocketAddress, String> consumer) throws TcpServerException {
+        checkStateBeforeAddListener();
+        tcpEventListener.addClientWriteCompleteListener(consumer);
+    }
+
+    public void addClientWriteUncompletedListener(BiConsumer<InetSocketAddress, Throwable> consumer) throws TcpServerException {
+        checkStateBeforeAddListener();
+        tcpEventListener.addClientWriteUncompletedListener(consumer);
+    }
+
 }

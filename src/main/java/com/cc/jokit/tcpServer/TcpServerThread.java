@@ -1,21 +1,20 @@
 package com.cc.jokit.tcpServer;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.CharsetUtil;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 public class TcpServerThread implements Callable<Void> {
 
@@ -96,5 +95,20 @@ public class TcpServerThread implements Callable<Void> {
             throw new TcpServerException("TCP客户端不存在:" + address);
         }
         channel.disconnect();
+    }
+
+    public void write(InetSocketAddress address, String buffer) throws TcpServerException {
+        NioSocketChannel channel = channelMap.getOrDefault(address, null);
+        if (ObjectUtils.isEmpty(channel)) {
+            throw new TcpServerException("TCP客户端不存在:" + address);
+        }
+        ChannelFuture channelFuture = channel.writeAndFlush(Unpooled.copiedBuffer(buffer, CharsetUtil.UTF_8));
+        channelFuture.addListener((ChannelFutureListener) future -> {
+            if (future.isSuccess()){
+                tcpEventListener.invokeClientWriteCompleteListener(address, buffer);
+            }else{
+                tcpEventListener.invokeClientWriteUncompletedListener(address, future.cause());
+            }
+        });
     }
 }

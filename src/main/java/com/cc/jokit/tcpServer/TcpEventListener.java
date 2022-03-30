@@ -13,6 +13,8 @@ public class TcpEventListener {
     private final List<BiConsumer<InetSocketAddress, NioSocketChannel>> incomingRichListener;
     private final List<Consumer<InetSocketAddress>> leaveListener;
     private final List<BiConsumer<InetSocketAddress, String>> clientMessageListener;
+    private final List<BiConsumer<InetSocketAddress, String>> clientWriteCompleteListener;
+    private final List<BiConsumer<InetSocketAddress, Throwable>> clientWriteUncompletedListener;
 
 
     public TcpEventListener () {
@@ -20,6 +22,8 @@ public class TcpEventListener {
         this.incomingRichListener = new LinkedList<>();
         this.leaveListener = new LinkedList<>();
         this.clientMessageListener = new LinkedList<>();
+        this.clientWriteCompleteListener = new LinkedList<>();
+        this.clientWriteUncompletedListener = new LinkedList<>();
 
     }
 
@@ -60,6 +64,26 @@ public class TcpEventListener {
     public void invokeClientMessageListener(InetSocketAddress address, String s) {
         for(BiConsumer<InetSocketAddress, String> c : clientMessageListener) {
             c.accept(address, s);
+        }
+    }
+
+    public void addClientWriteCompleteListener(BiConsumer<InetSocketAddress, String> consumer) {
+        clientWriteCompleteListener.add(consumer);
+    }
+
+    public void invokeClientWriteCompleteListener(InetSocketAddress address, String s) {
+        for(BiConsumer<InetSocketAddress, String> c : clientWriteCompleteListener) {
+            c.accept(address, s);
+        }
+    }
+
+    public void addClientWriteUncompletedListener(BiConsumer<InetSocketAddress, Throwable> consumer) {
+        clientWriteUncompletedListener.add(consumer);
+    }
+
+    public void invokeClientWriteUncompletedListener(InetSocketAddress address, Throwable t) {
+        for(BiConsumer<InetSocketAddress, Throwable> c : clientWriteUncompletedListener) {
+            c.accept(address, t);
         }
     }
 }

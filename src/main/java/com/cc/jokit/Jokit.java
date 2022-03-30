@@ -166,6 +166,14 @@ public class Jokit extends Application {
                         String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
                         serverAppendLog("TCP收到:" + temp + ":" + s);
                     });
+                    tcpServer.addClientWriteCompleteListener((address, s) -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        serverAppendLog("TCP发送:" + temp + ":" + s);
+                    });
+                    tcpServer.addClientWriteUncompletedListener((address, t) -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        serverAppendLog("TCP发送失败:" + temp + ":" + t.getMessage());
+                    });
                     tcpServer.start();
                     serverAppendLog("TCP监听:" + ip + ":" + port);
                     serverTcpButton.setText(SERVER_TCP_UNBIND);
@@ -248,6 +256,21 @@ public class Jokit extends Application {
         //server buffer
         serverBufferSendButton.setMinWidth(80);
         serverBufferSendButton.setMinHeight(22);
+        serverBufferSendButton.setOnMouseClicked(event -> {
+            if (ObjectUtils.isEmpty(tcpServer) || !tcpServer.isStart()) {
+                serverAppendLog("TCP服务器未启动");
+            }
+            serverClients.forEach((checkBox, address) -> {
+                if (checkBox.selectedProperty().getValue()) {
+                    try {
+                        tcpServer.write(address, serverBufferTextField.getText());
+                    } catch (TcpServerException e) {
+                        serverAppendLog(e.getMessage());
+                    }
+                }
+            });
+        });
+
         serverBufferHBox.getChildren().addAll(serverBufferTextField, serverBufferSendButton);
         serverBufferHBox.setSpacing(2);
         HBox.setHgrow(serverBufferTextField, Priority.SOMETIMES);
