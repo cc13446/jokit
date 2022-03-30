@@ -2,6 +2,8 @@ package com.cc.jokit;
 
 import com.cc.jokit.tcpServer.TcpServer;
 import com.cc.jokit.tcpServer.TcpServerException;
+import com.cc.jokit.udpServer.UdpServer;
+import com.cc.jokit.udpServer.UdpServerException;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -19,6 +21,8 @@ import org.apache.commons.lang3.ObjectUtils;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class Jokit extends Application {
@@ -52,7 +56,8 @@ public class Jokit extends Application {
     private final static VBox serverInputVBox = new VBox();
 
     //server clients
-    private final static Map<CheckBox, InetSocketAddress> serverClients = new HashMap<>();
+    private final static Map<CheckBox, InetSocketAddress> serverTCPClients = new HashMap<>();
+    private final static Map<CheckBox, InetSocketAddress> serverUDPClients = new HashMap<>();
     private final static VBox serverClientsVBox = new VBox();
     private final static ScrollPane serverClientsScrollPane = new ScrollPane();
     private final static Button serverClientsControlSelectAll = new Button("选择全部");
@@ -110,6 +115,7 @@ public class Jokit extends Application {
     private final static HBox hBox = new HBox();
 
     private static TcpServer tcpServer = null;
+    private static UdpServer udpServer = null;
 
     @Override
     public void start(Stage stage) {
@@ -141,7 +147,7 @@ public class Jokit extends Application {
                             Platform.runLater(() -> {
                                 String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
                                 CheckBox newBox = new CheckBox(temp);
-                                serverClients.put(newBox, address);
+                                serverTCPClients.put(newBox, address);
                                 serverClientsVBox.getChildren().add(newBox);
                                 serverAppendLog("TCP连接:" + temp);
                             })
@@ -150,14 +156,14 @@ public class Jokit extends Application {
                             Platform.runLater(() -> {
                                 String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
                                 CheckBox leave = null;
-                                for (CheckBox c : serverClients.keySet()) {
+                                for (CheckBox c : serverTCPClients.keySet()) {
                                     if (c.textProperty().getValue().equals(temp)) {
                                         leave = c;
                                     }
                                 }
                                 if (ObjectUtils.isNotEmpty(leave)) {
                                     serverClientsVBox.getChildren().remove(leave);
-                                    serverClients.remove(leave);
+                                    serverTCPClients.remove(leave);
                                 }
                                 serverAppendLog("TCP断开:" + temp);
                             })
@@ -183,7 +189,7 @@ public class Jokit extends Application {
                     tcpServer = null;
                     serverTcpButton.setText(SERVER_TCP_BIND);
                 }
-            } catch (TcpServerException exception) {
+            } catch (TcpServerException | JokitException exception) {
                 serverAppendLog(exception.getMessage());
             }
         });
@@ -205,6 +211,43 @@ public class Jokit extends Application {
 
         serverUdpButton.setMinWidth(80);
         serverUdpButton.setMinHeight(20);
+        serverUdpButton.setOnMouseClicked(event -> {
+            try {
+                if (ObjectUtils.isEmpty(udpServer)) {
+                    String ip = serverUdpAddrComboBox.getValue();
+                    int port =  Utils.parsePort(serverUdpPortTextField.getText());
+                    udpServer = new UdpServer(ip, port);
+                    udpServer.addIncomingListener((address, s) ->
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            if (!serverUDPClients.containsValue(address)) {
+                                CheckBox newBox = new CheckBox(temp);
+                                serverUDPClients.put(newBox, address);
+                                serverClientsVBox.getChildren().add(newBox);
+                            }
+                            serverAppendLog("UDP消息:" + temp + ":" + s);
+                    }));
+                    udpServer.addClientWriteCompleteListener((address, s) -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        serverAppendLog("UDP发送:" + temp + ":" + s);
+                    });
+                    udpServer.addClientWriteUncompletedListener((address, t) -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        serverAppendLog("UDP发送失败:" + temp + ":" + t.getMessage());
+                    });
+                    udpServer.start();
+                    serverAppendLog("UDP监听:" + ip + ":" + port);
+                    serverUdpButton.setText(SERVER_UDP_UNBIND);
+                } else {
+                    udpServer.close();
+                    serverAppendLog("UDP停止:" + udpServer.getIp() + ":" + udpServer.getPort());
+                    udpServer = null;
+                    serverUdpButton.setText(SERVER_UDP_BIND);
+                }
+            } catch (UdpServerException | JokitException e) {
+                serverAppendLog(e.getMessage());
+            }
+        });
 
         serverUdpHBox.getChildren().addAll(serverUdpAddrComboBox, serverUdpPortTextField, serverUdpButton);
         HBox.setHgrow(serverUdpPortTextField, Priority.SOMETIMES);
@@ -214,7 +257,7 @@ public class Jokit extends Application {
         serverInputVBox.setSpacing(5);
 
         //server clients
-        serverClientsVBox.getChildren().addAll(serverClients.keySet());
+        serverClientsVBox.getChildren().addAll(serverTCPClients.keySet());
         serverClientsVBox.setSpacing(2);
 
         serverClientsScrollPane.setPrefHeight(57);
@@ -223,7 +266,10 @@ public class Jokit extends Application {
         serverClientsControlSelectAll.setMinWidth(80);
         serverClientsControlSelectAll.setMinHeight(22);
         serverClientsControlSelectAll.setOnMouseClicked(e -> {
-            for (CheckBox c : serverClients.keySet()) {
+            for (CheckBox c : serverTCPClients.keySet()) {
+                c.selectedProperty().setValue(true);
+            }
+            for (CheckBox c : serverUDPClients.keySet()) {
                 c.selectedProperty().setValue(true);
             }
         });
@@ -231,10 +277,11 @@ public class Jokit extends Application {
         serverClientsControlDisconnect.setMinWidth(80);
         serverClientsControlDisconnect.setMinHeight(22);
         serverClientsControlDisconnect.setOnMouseClicked(event -> {
-            if (!tcpServer.isStart()) {
-                serverAppendLog("TCP服务器未启动");
+            if (ObjectUtils.isEmpty(tcpServer) || !tcpServer.isStart() && ObjectUtils.isEmpty(udpServer) || !udpServer.isStart()) {
+                serverAppendLog("服务器未启动");
+                return;
             }
-            serverClients.forEach((checkBox, address) -> {
+            serverTCPClients.forEach((checkBox, address) -> {
                 if (checkBox.selectedProperty().getValue()) {
                     try {
                         tcpServer.disconnect(address);
@@ -243,6 +290,14 @@ public class Jokit extends Application {
                     }
                 }
             });
+            List<CheckBox> leaves = new LinkedList<>();
+            serverUDPClients.forEach((checkBox, address) -> {
+                if (checkBox.selectedProperty().getValue()) {
+                    serverClientsVBox.getChildren().remove(checkBox);
+                    leaves.add(checkBox);
+                }
+            });
+            leaves.forEach(serverUDPClients::remove);
         });
 
         serverClientsControlVBox.getChildren().addAll(serverClientsControlSelectAll, serverClientsControlDisconnect);
@@ -257,13 +312,23 @@ public class Jokit extends Application {
         serverBufferSendButton.setMinWidth(80);
         serverBufferSendButton.setMinHeight(22);
         serverBufferSendButton.setOnMouseClicked(event -> {
-            if (ObjectUtils.isEmpty(tcpServer) || !tcpServer.isStart()) {
-                serverAppendLog("TCP服务器未启动");
+            if (ObjectUtils.isEmpty(tcpServer) || !tcpServer.isStart() && ObjectUtils.isEmpty(udpServer) || !udpServer.isStart()) {
+                serverAppendLog("服务器未启动");
+                return;
             }
-            serverClients.forEach((checkBox, address) -> {
+            serverTCPClients.forEach((checkBox, address) -> {
                 if (checkBox.selectedProperty().getValue()) {
                     try {
                         tcpServer.write(address, serverBufferTextField.getText());
+                    } catch (TcpServerException e) {
+                        serverAppendLog(e.getMessage());
+                    }
+                }
+            });
+            serverUDPClients.forEach((checkBox, address) -> {
+                if (checkBox.selectedProperty().getValue()) {
+                    try {
+                        udpServer.write(address, serverBufferTextField.getText());
                     } catch (TcpServerException e) {
                         serverAppendLog(e.getMessage());
                     }

@@ -51,17 +51,17 @@ public class Utils {
         return true;
     }
 
-    public static int parsePort(String port) throws TcpServerException {
+    public static int parsePort(String port) throws JokitException {
 
         if (port.equals("")) {
-            throw new TcpServerException("Port格式错误:" + port);
+            throw new JokitException("Port格式错误:" + port);
         }
         int res;
         try {
             res = Integer.parseInt(port);
-            if (res < 0 || res > 65535) throw new TcpServerException("Port格式错误:" + port);
+            if (res < 0 || res > 65535) throw new JokitException("Port格式错误:" + port);
         } catch (NumberFormatException e) {
-            throw new TcpServerException("Port格式错误:" + port);
+            throw new JokitException("Port格式错误:" + port);
         }
 
         return res;
