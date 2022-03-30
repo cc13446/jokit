@@ -132,38 +132,43 @@ public class Jokit extends Application {
         serverTcpButton.setMinWidth(80);
         serverTcpButton.setMinHeight(20);
         serverTcpButton.setOnMouseClicked(e -> {
-            if (null == tcpServer) {
-                try {
+            try {
+                if (null == tcpServer) {
                     tcpServer = new TcpServer(serverTcpAddrComboBox.getValue(), Utils.parsePort(serverTcpPortTextField.getText()));
                     tcpServer.addIncomingListener(address ->
-                        Platform.runLater(() -> {
-                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                            CheckBox newBox = new CheckBox(temp);
-                            serverClients.put(newBox, address);
-                            serverClientsVBox.getChildren().add(newBox);
-                            serverAppendLog("TCP连接:" + temp);
-                        })
+                            Platform.runLater(() -> {
+                                String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                                CheckBox newBox = new CheckBox(temp);
+                                serverClients.put(newBox, address);
+                                serverClientsVBox.getChildren().add(newBox);
+                                serverAppendLog("TCP连接:" + temp);
+                            })
                     );
                     tcpServer.addLeaveListener(address ->
-                        Platform.runLater(() -> {
-                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                            CheckBox leave = null;
-                            for (CheckBox c : serverClients.keySet()) {
-                                if (c.textProperty().getValue().equals(temp)) {
-                                    leave = c;
+                            Platform.runLater(() -> {
+                                String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                                CheckBox leave = null;
+                                for (CheckBox c : serverClients.keySet()) {
+                                    if (c.textProperty().getValue().equals(temp)) {
+                                        leave = c;
+                                    }
                                 }
-                            }
-                            if (ObjectUtils.isNotEmpty(leave)) {
-                                serverClientsVBox.getChildren().remove(leave);
-                                serverClients.remove(leave);
-                            }
-                            serverAppendLog("TCP断开:" + temp);
-                        })
+                                if (ObjectUtils.isNotEmpty(leave)) {
+                                    serverClientsVBox.getChildren().remove(leave);
+                                    serverClients.remove(leave);
+                                }
+                                serverAppendLog("TCP断开:" + temp);
+                            })
                     );
                     tcpServer.start();
-                } catch (TcpServerException exception) {
-                    serverAppendLog(exception.getMessage());
+                    serverTcpButton.setText(SERVER_TCP_UNBIND);
+                } else {
+                    tcpServer.close();
+                    tcpServer = null;
+                    serverTcpButton.setText(SERVER_TCP_BIND);
                 }
+            } catch (TcpServerException exception) {
+                serverAppendLog(exception.getMessage());
             }
         });
 
