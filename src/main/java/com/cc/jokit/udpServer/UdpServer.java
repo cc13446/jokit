@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class UdpServer {
 
@@ -52,11 +53,13 @@ public class UdpServer {
 
     public void close() throws UdpServerException {
         try {
-            this.serverState = State.CLOSE;
-            udpServerThread.closeServer();
-            completionService.take().get();
+            if(isStart()) {
+                this.serverState = State.CLOSE;
+                udpServerThread.closeServer();
+                completionService.take().get();
+            }
         } catch (InterruptedException | ExecutionException e){
-            throw new UdpServerException(e.getMessage());
+            throw new UdpServerException("UDP关闭错误:" + e.getMessage());
         }
     }
 
@@ -88,5 +91,9 @@ public class UdpServer {
         udpEventListener.addClientWriteUncompletedListener(consumer);
     }
 
+    public void addErrorBindListener(Consumer<Throwable> consumer) throws UdpServerException {
+        checkStateBeforeAddListener();
+        udpEventListener.addErrorBindListener(consumer);
+    }
 
 }

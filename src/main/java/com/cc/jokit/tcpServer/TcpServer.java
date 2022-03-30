@@ -47,11 +47,13 @@ public class TcpServer {
 
     public void close() throws TcpServerException {
         try {
-            this.serverState = State.CLOSE;
-            tcpServerThread.closeServer();
-            completionService.take().get();
+            if(isStart()) {
+                this.serverState = State.CLOSE;
+                tcpServerThread.closeServer();
+                completionService.take().get();
+            }
         } catch (InterruptedException | ExecutionException e){
-            throw new TcpServerException(e.getMessage());
+            throw new TcpServerException("TCP关闭错误:" + e.getMessage());
         }
     }
 
@@ -94,6 +96,11 @@ public class TcpServer {
     public void addClientWriteUncompletedListener(BiConsumer<InetSocketAddress, Throwable> consumer) throws TcpServerException {
         checkStateBeforeAddListener();
         tcpEventListener.addClientWriteUncompletedListener(consumer);
+    }
+
+    public void addErrorBindListener(Consumer<Throwable> consumer) throws TcpServerException {
+        checkStateBeforeAddListener();
+        tcpEventListener.addErrorBindListener(consumer);
     }
 
 }

@@ -15,6 +15,7 @@ public class TcpEventListener {
     private final List<BiConsumer<InetSocketAddress, String>> clientMessageListener;
     private final List<BiConsumer<InetSocketAddress, String>> clientWriteCompleteListener;
     private final List<BiConsumer<InetSocketAddress, Throwable>> clientWriteUncompletedListener;
+    private final List<Consumer<Throwable>> errorBindListener;
 
 
     public TcpEventListener () {
@@ -24,6 +25,7 @@ public class TcpEventListener {
         this.clientMessageListener = new LinkedList<>();
         this.clientWriteCompleteListener = new LinkedList<>();
         this.clientWriteUncompletedListener = new LinkedList<>();
+        this.errorBindListener = new LinkedList<>();
 
     }
 
@@ -84,6 +86,16 @@ public class TcpEventListener {
     public void invokeClientWriteUncompletedListener(InetSocketAddress address, Throwable t) {
         for(BiConsumer<InetSocketAddress, Throwable> c : clientWriteUncompletedListener) {
             c.accept(address, t);
+        }
+    }
+
+    public void addErrorBindListener(Consumer<Throwable> c) {
+        errorBindListener.add(c);
+    }
+
+    public void invokeErrorBindListener(Throwable e) {
+        for(Consumer<Throwable> c : errorBindListener) {
+            c.accept(e);
         }
     }
 }

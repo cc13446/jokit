@@ -137,60 +137,81 @@ public class Jokit extends Application {
 
         serverTcpButton.setMinWidth(80);
         serverTcpButton.setMinHeight(20);
-        serverTcpButton.setOnMouseClicked(e -> {
+        serverTcpButton.setOnMouseClicked(event -> {
             try {
-                if (null == tcpServer) {
+                if (ObjectUtils.isEmpty(tcpServer)) {
                     String ip = serverTcpAddrComboBox.getValue();
                     int port =  Utils.parsePort(serverTcpPortTextField.getText());
                     tcpServer = new TcpServer(ip, port);
                     tcpServer.addIncomingListener(address ->
-                            Platform.runLater(() -> {
-                                String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                                CheckBox newBox = new CheckBox(temp);
-                                serverTCPClients.put(newBox, address);
-                                serverClientsVBox.getChildren().add(newBox);
-                                serverAppendLog("TCP连接:" + temp);
-                            })
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            CheckBox newBox = new CheckBox(temp);
+                            serverTCPClients.put(newBox, address);
+                            serverClientsVBox.getChildren().add(newBox);
+                            serverAppendLog("TCP连接:" + temp);
+                        })
                     );
                     tcpServer.addLeaveListener(address ->
-                            Platform.runLater(() -> {
-                                String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                                CheckBox leave = null;
-                                for (CheckBox c : serverTCPClients.keySet()) {
-                                    if (c.textProperty().getValue().equals(temp)) {
-                                        leave = c;
-                                    }
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            CheckBox leave = null;
+                            for (CheckBox c : serverTCPClients.keySet()) {
+                                if (c.textProperty().getValue().equals(temp)) {
+                                    leave = c;
                                 }
-                                if (ObjectUtils.isNotEmpty(leave)) {
-                                    serverClientsVBox.getChildren().remove(leave);
-                                    serverTCPClients.remove(leave);
-                                }
-                                serverAppendLog("TCP断开:" + temp);
-                            })
+                            }
+                            if (ObjectUtils.isNotEmpty(leave)) {
+                                serverClientsVBox.getChildren().remove(leave);
+                                serverTCPClients.remove(leave);
+                            }
+                            serverAppendLog("TCP断开:" + temp);
+                        })
                     );
-                    tcpServer.addClientMessageListener((address, s) -> {
-                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                        serverAppendLog("TCP收到:" + temp + ":" + s);
-                    });
-                    tcpServer.addClientWriteCompleteListener((address, s) -> {
-                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                        serverAppendLog("TCP发送:" + temp + ":" + s);
-                    });
-                    tcpServer.addClientWriteUncompletedListener((address, t) -> {
-                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                        serverAppendLog("TCP发送失败:" + temp + ":" + t.getMessage());
-                    });
+                    tcpServer.addClientMessageListener((address, s) ->
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            serverAppendLog("TCP收到:" + temp + ":" + s);
+                        })
+                    );
+                    tcpServer.addClientWriteCompleteListener((address, s) ->
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            serverAppendLog("TCP发送:" + temp + ":" + s);
+                        })
+                    );
+                    tcpServer.addClientWriteUncompletedListener((address, t) ->
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            serverAppendLog("TCP发送失败:" + temp + ":" + t.getMessage());
+                        })
+                    );
+                    tcpServer.addErrorBindListener(error ->
+                        Platform.runLater(() -> {
+                            serverAppendLog("TCP监听错误:" + error.getMessage());
+                            try {
+                                tcpServer.close();
+                            } catch (TcpServerException ex) {
+                                serverAppendLog(ex.getMessage());
+                            }
+                            serverAppendLog("TCP停止:" + tcpServer.getIp() + ":" + tcpServer.getPort());
+                            tcpServer = null;
+                            serverTcpButton.setText(SERVER_TCP_BIND);
+                        }
+                    ));
                     tcpServer.start();
                     serverAppendLog("TCP监听:" + ip + ":" + port);
                     serverTcpButton.setText(SERVER_TCP_UNBIND);
                 } else {
-                    tcpServer.close();
                     serverAppendLog("TCP停止:" + tcpServer.getIp() + ":" + tcpServer.getPort());
+                    tcpServer.close();
                     tcpServer = null;
                     serverTcpButton.setText(SERVER_TCP_BIND);
                 }
             } catch (TcpServerException | JokitException exception) {
                 serverAppendLog(exception.getMessage());
+                tcpServer = null;
+                serverTcpButton.setText(SERVER_TCP_BIND);
             }
         });
 
@@ -227,14 +248,28 @@ public class Jokit extends Application {
                             }
                             serverAppendLog("UDP消息:" + temp + ":" + s);
                     }));
-                    udpServer.addClientWriteCompleteListener((address, s) -> {
-                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                        serverAppendLog("UDP发送:" + temp + ":" + s);
-                    });
-                    udpServer.addClientWriteUncompletedListener((address, t) -> {
-                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                        serverAppendLog("UDP发送失败:" + temp + ":" + t.getMessage());
-                    });
+                    udpServer.addClientWriteCompleteListener((address, s) ->
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            serverAppendLog("UDP发送:" + temp + ":" + s);
+                    }));
+                    udpServer.addClientWriteUncompletedListener((address, t) ->
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            serverAppendLog("UDP发送失败:" + temp + ":" + t.getMessage());
+                    }));
+                    udpServer.addErrorBindListener(error ->
+                        Platform.runLater(() -> {
+                            serverAppendLog("UDP监听失败:" + error);
+                            try {
+                                udpServer.close();
+                            } catch (UdpServerException ex) {
+                                serverAppendLog(ex.getMessage());
+                            }
+                            serverAppendLog("UDP停止:" + udpServer.getIp() + ":" + udpServer.getPort());
+                            udpServer = null;
+                            serverUdpButton.setText(SERVER_UDP_BIND);
+                    }));
                     udpServer.start();
                     serverAppendLog("UDP监听:" + ip + ":" + port);
                     serverUdpButton.setText(SERVER_UDP_UNBIND);
@@ -246,6 +281,8 @@ public class Jokit extends Application {
                 }
             } catch (UdpServerException | JokitException e) {
                 serverAppendLog(e.getMessage());
+                udpServer = null;
+                serverUdpButton.setText(SERVER_UDP_BIND);
             }
         });
 
@@ -378,10 +415,10 @@ public class Jokit extends Application {
             }
         });
 
-        clientTcpButton.setMinWidth(50);
+        clientTcpButton.setMinWidth(70);
         clientTcpButton.setMinHeight(20);
 
-        clientUdpButton.setMinWidth(50);
+        clientUdpButton.setMinWidth(70);
         clientUdpButton.setMinHeight(20);
 
         clientInputHBox.getChildren().addAll(clientAddrTextField, clientPortTextField, clientTcpButton, clientUdpButton);

@@ -51,7 +51,7 @@ public class TcpServerThread implements Callable<Void> {
     }
 
     @Override
-    public Void call() throws InterruptedException {
+    public Void call() {
 
         // 两个group 一个负责监听bind 一个负责读取socket消息
         // 包含多个EventLoop, 每个EventLoop与一个线程绑定
@@ -78,10 +78,18 @@ public class TcpServerThread implements Callable<Void> {
                             socketChannel.pipeline().addLast(new TcpServerChildrenHandler(tcpEventListener));
                         }
                     });
-            ChannelFuture channelFuture = serverBootstrap.bind().sync();
+            ChannelFuture channelFuture = serverBootstrap.bind();
+            channelFuture.addListener((ChannelFutureListener) future -> {
+                if (!future.isSuccess()){
+                    tcpEventListener.invokeErrorBindListener(future.cause());
+                }
+            });
+            channelFuture.sync();
             serverChannel = channelFuture.channel();
             // 阻塞到Channel关闭
             serverChannel.closeFuture().sync();
+        } catch (InterruptedException e){
+            tcpEventListener.invokeErrorBindListener(e);
         } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();

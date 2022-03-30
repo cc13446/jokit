@@ -68,10 +68,18 @@ public class UdpServerThread implements Callable<Void> {
                             nioDatagramChannel.pipeline().addLast(new UdpServerHandler(udpEventListener));
                         }
                     });
-            ChannelFuture channelFuture = bootstrap.bind().sync();
+            ChannelFuture channelFuture = bootstrap.bind();
+            channelFuture.addListener(future -> {
+                if(!future.isSuccess()) {
+                    udpEventListener.invokeErrorBindListener(future.cause());
+                }
+            });
+            channelFuture.sync();
             serverChannel = channelFuture.channel();
             serverChannel.closeFuture().sync();
 
+        } catch (InterruptedException e) {
+            udpEventListener.invokeErrorBindListener(e);
         } finally {
             bossGroup.shutdownGracefully();
         }
