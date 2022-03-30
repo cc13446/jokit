@@ -349,28 +349,28 @@ public class Jokit extends Application {
         serverBufferSendButton.setMinWidth(80);
         serverBufferSendButton.setMinHeight(22);
         serverBufferSendButton.setOnMouseClicked(event -> {
-            if (ObjectUtils.isEmpty(tcpServer) || !tcpServer.isStart() && ObjectUtils.isEmpty(udpServer) || !udpServer.isStart()) {
-                serverAppendLog("服务器未启动");
-                return;
+            if (!ObjectUtils.isEmpty(tcpServer) && tcpServer.isStart()) {
+                serverTCPClients.forEach((checkBox, address) -> {
+                    if (checkBox.selectedProperty().getValue()) {
+                        try {
+                            tcpServer.write(address, serverBufferTextField.getText());
+                        } catch (TcpServerException e) {
+                            serverAppendLog(e.getMessage());
+                        }
+                    }
+                });
             }
-            serverTCPClients.forEach((checkBox, address) -> {
-                if (checkBox.selectedProperty().getValue()) {
-                    try {
-                        tcpServer.write(address, serverBufferTextField.getText());
-                    } catch (TcpServerException e) {
-                        serverAppendLog(e.getMessage());
+            if (!ObjectUtils.isEmpty(udpServer) && udpServer.isStart()) {
+                serverUDPClients.forEach((checkBox, address) -> {
+                    if (checkBox.selectedProperty().getValue()) {
+                        try {
+                            udpServer.write(address, serverBufferTextField.getText());
+                        } catch (TcpServerException e) {
+                            serverAppendLog(e.getMessage());
+                        }
                     }
-                }
-            });
-            serverUDPClients.forEach((checkBox, address) -> {
-                if (checkBox.selectedProperty().getValue()) {
-                    try {
-                        udpServer.write(address, serverBufferTextField.getText());
-                    } catch (TcpServerException e) {
-                        serverAppendLog(e.getMessage());
-                    }
-                }
-            });
+                });
+            }
         });
 
         serverBufferHBox.getChildren().addAll(serverBufferTextField, serverBufferSendButton);
@@ -380,6 +380,36 @@ public class Jokit extends Application {
         //server ascii
         serverBufferAsciiSendButton.setMinWidth(80);
         serverBufferAsciiSendButton.setMinHeight(22);
+        serverBufferAsciiSendButton.setOnMouseClicked(event -> {
+            try {
+                String buffer = Utils.asciiToString(serverBufferAsciiTextField.getText());
+                if (!ObjectUtils.isEmpty(tcpServer) && tcpServer.isStart()) {
+                    serverTCPClients.forEach((checkBox, address) -> {
+                        if (checkBox.selectedProperty().getValue()) {
+                            try {
+                                tcpServer.write(address, buffer);
+                            } catch (TcpServerException e) {
+                                serverAppendLog(e.getMessage());
+                            }
+                        }
+                    });
+                }
+                if (!ObjectUtils.isEmpty(udpServer) && udpServer.isStart()) {
+                    serverUDPClients.forEach((checkBox, address) -> {
+                        if (checkBox.selectedProperty().getValue()) {
+                            try {
+                                udpServer.write(address, buffer);
+                            } catch (TcpServerException e) {
+                                serverAppendLog(e.getMessage());
+                            }
+                        }
+                    });
+                }
+            } catch (JokitException e) {
+                serverAppendLog(e.getMessage());
+            }
+        });
+
         serverBufferAsciiHBox.getChildren().addAll(serverBufferAsciiTextField, serverBufferAsciiSendButton);
         serverBufferAsciiHBox.setSpacing(2);
         HBox.setHgrow(serverBufferAsciiTextField, Priority.SOMETIMES);

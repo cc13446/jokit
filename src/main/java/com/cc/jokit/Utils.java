@@ -97,4 +97,21 @@ public class Utils {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm:ss");
         return simpleDateFormat.format(new Date()) + " " + msg + "\n";
     }
+
+    public static String asciiToString(String ascii) throws JokitException {
+        String[] asciiSplit = ascii.split(",");
+        StringBuilder sb = new StringBuilder();
+        try {
+            for (String s : asciiSplit) {
+                int temp = Integer.parseInt(s);
+                if (temp < 0 || temp > 127) {
+                    throw new JokitException("Ascii码格式错误 例如'65,66,67' => 'ABC'");
+                }
+                sb.append((char)temp);
+            }
+        } catch (NumberFormatException e) {
+            throw new JokitException("Ascii码格式错误 例如'65,66,67' => 'ABC'");
+        }
+        return sb.toString();
+    }
 }
