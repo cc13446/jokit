@@ -74,7 +74,7 @@ public class TcpServerThread implements Callable<Void> {
                         // 这个方法将自定义的ChannelHandler安装到ChannelPipeline
                         @Override
                         protected void initChannel(SocketChannel socketChannel) {
-                            socketChannel.pipeline().addLast(new TcpServerChildrenHandler());
+                            socketChannel.pipeline().addLast(new TcpServerChildrenHandler(tcpEventListener));
                         }
                     });
             ChannelFuture channelFuture = serverBootstrap.bind().sync();

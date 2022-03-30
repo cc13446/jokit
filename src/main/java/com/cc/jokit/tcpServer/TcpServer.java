@@ -55,4 +55,9 @@ public class TcpServer {
         checkStateBeforeAddListener();
         tcpEventListener.addIncomingListener(consumer);
     }
+
+    public void addLeaveListener(Consumer<InetSocketAddress> consumer) throws TcpServerException {
+        checkStateBeforeAddListener();
+        tcpEventListener.addLeaveListener(consumer);
+    }
 }

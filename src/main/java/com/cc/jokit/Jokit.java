@@ -15,10 +15,11 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import org.apache.commons.lang3.ObjectUtils;
 
 import java.net.InetSocketAddress;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Jokit extends Application {
 
@@ -135,13 +136,29 @@ public class Jokit extends Application {
                 try {
                     tcpServer = new TcpServer(serverTcpAddrComboBox.getValue(), Utils.parsePort(serverTcpPortTextField.getText()));
                     tcpServer.addIncomingListener(address ->
-                            Platform.runLater(() -> {
-                                String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                                CheckBox newBox = new CheckBox(temp);
-                                serverClients.put(newBox, address);
-                                serverClientsVBox.getChildren().add(newBox);
-                                serverAppendLog("TCP连接:" + temp);
-                            })
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            CheckBox newBox = new CheckBox(temp);
+                            serverClients.put(newBox, address);
+                            serverClientsVBox.getChildren().add(newBox);
+                            serverAppendLog("TCP连接:" + temp);
+                        })
+                    );
+                    tcpServer.addLeaveListener(address ->
+                        Platform.runLater(() -> {
+                            String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                            CheckBox leave = null;
+                            for (CheckBox c : serverClients.keySet()) {
+                                if (c.textProperty().getValue().equals(temp)) {
+                                    leave = c;
+                                }
+                            }
+                            if (ObjectUtils.isNotEmpty(leave)) {
+                                serverClientsVBox.getChildren().remove(leave);
+                                serverClients.remove(leave);
+                            }
+                            serverAppendLog("TCP断开:" + temp);
+                        })
                     );
                     tcpServer.start();
                 } catch (TcpServerException exception) {
@@ -290,6 +307,8 @@ public class Jokit extends Application {
         Scene scene = new Scene(hBox);
         stage.setScene(scene);
         stage.setTitle("Jokit");
+        stage.setHeight(500);
+        stage.setWidth(800);
         stage.setMinHeight(500);
         stage.setMinWidth(800);
         stage.show();

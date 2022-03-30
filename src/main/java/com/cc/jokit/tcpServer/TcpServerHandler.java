@@ -1,10 +1,10 @@
 package com.cc.jokit.tcpServer;
 
+import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
-public class TcpServerHandler extends ChannelInboundHandlerAdapter {
+public class TcpServerHandler extends ChannelDuplexHandler {
     private final TcpEventListener tcpEventListener;
 
     public TcpServerHandler(TcpEventListener tcpEventListener) {
@@ -16,6 +16,8 @@ public class TcpServerHandler extends ChannelInboundHandlerAdapter {
         NioSocketChannel socketChannel = (NioSocketChannel) msg;
         tcpEventListener.invokeIncomingListener(socketChannel.remoteAddress());
         tcpEventListener.invokeIncomingRichListener(socketChannel.remoteAddress(), socketChannel);
+
+        ctx.fireChannelRead(msg);
     }
 
     @Override

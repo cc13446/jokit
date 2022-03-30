@@ -11,10 +11,14 @@ import java.util.function.Consumer;
 public class TcpEventListener {
     private final List<Consumer<InetSocketAddress>> incomingListener;
     private final List<BiConsumer<InetSocketAddress, NioSocketChannel>> incomingRichListener;
+    private final List<Consumer<InetSocketAddress>> leaveListener;
+
 
     public TcpEventListener () {
         this.incomingListener = new LinkedList<>();
         this.incomingRichListener = new LinkedList<>();
+        this.leaveListener = new LinkedList<>();
+
     }
 
     public void addIncomingListener(Consumer<InetSocketAddress> consumer) {
@@ -34,6 +38,16 @@ public class TcpEventListener {
     public void invokeIncomingRichListener(InetSocketAddress address, NioSocketChannel nioSocketChannel) {
         for(BiConsumer<InetSocketAddress, NioSocketChannel> c : incomingRichListener) {
             c.accept(address, nioSocketChannel);
+        }
+    }
+
+    public void addLeaveListener(Consumer<InetSocketAddress> consumer) {
+        leaveListener.add(consumer);
+    }
+
+    public void invokeLeaveListener(InetSocketAddress address) {
+        for(Consumer<InetSocketAddress> c : leaveListener) {
+            c.accept(address);
         }
     }
 }
