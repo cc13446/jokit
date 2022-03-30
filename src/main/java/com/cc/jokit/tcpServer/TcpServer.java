@@ -4,6 +4,7 @@ import io.netty.util.internal.StringUtil;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class TcpServer {
@@ -15,7 +16,7 @@ public class TcpServer {
     private final TcpServerThread tcpServerThread;
     private final CompletionService<Void> completionService;
     private final TcpEventListener tcpEventListener;
-    private State serverState;
+    private volatile State serverState;
 
 
     public TcpServer(String ip, int port) throws TcpServerException {
@@ -32,19 +33,34 @@ public class TcpServer {
         this.serverState = State.READY;
     }
 
+    public String getIp() {
+        return tcpServerThread.getIp();
+    }
+    public int getPort() {
+        return tcpServerThread.getPort();
+    }
+
     public void start() {
-        this.serverState = State.START;
         completionService.submit(tcpServerThread);
+        this.serverState = State.START;
     }
 
     public void close() throws TcpServerException {
         try {
+            this.serverState = State.CLOSE;
             tcpServerThread.closeServer();
             completionService.take().get();
-            this.serverState = State.CLOSE;
         } catch (InterruptedException | ExecutionException e){
             throw new TcpServerException(e.getMessage());
         }
+    }
+
+    public boolean isStart() {
+        return serverState == State.START;
+    }
+
+    public void disconnect(InetSocketAddress address) throws TcpServerException {
+        tcpServerThread.disconnect(address);
     }
 
     private void checkStateBeforeAddListener() throws TcpServerException {
@@ -59,5 +75,10 @@ public class TcpServer {
     public void addLeaveListener(Consumer<InetSocketAddress> consumer) throws TcpServerException {
         checkStateBeforeAddListener();
         tcpEventListener.addLeaveListener(consumer);
+    }
+
+    public void addClientMessageListener(BiConsumer<InetSocketAddress, String> consumer) throws TcpServerException {
+        checkStateBeforeAddListener();
+        tcpEventListener.addClientMessageListener(consumer);
     }
 }

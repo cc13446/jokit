@@ -12,12 +12,14 @@ public class TcpEventListener {
     private final List<Consumer<InetSocketAddress>> incomingListener;
     private final List<BiConsumer<InetSocketAddress, NioSocketChannel>> incomingRichListener;
     private final List<Consumer<InetSocketAddress>> leaveListener;
+    private final List<BiConsumer<InetSocketAddress, String>> clientMessageListener;
 
 
     public TcpEventListener () {
         this.incomingListener = new LinkedList<>();
         this.incomingRichListener = new LinkedList<>();
         this.leaveListener = new LinkedList<>();
+        this.clientMessageListener = new LinkedList<>();
 
     }
 
@@ -48,6 +50,16 @@ public class TcpEventListener {
     public void invokeLeaveListener(InetSocketAddress address) {
         for(Consumer<InetSocketAddress> c : leaveListener) {
             c.accept(address);
+        }
+    }
+
+    public void addClientMessageListener(BiConsumer<InetSocketAddress, String> consumer) {
+        clientMessageListener.add(consumer);
+    }
+
+    public void invokeClientMessageListener(InetSocketAddress address, String s) {
+        for(BiConsumer<InetSocketAddress, String> c : clientMessageListener) {
+            c.accept(address, s);
         }
     }
 }

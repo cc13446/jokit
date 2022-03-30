@@ -134,7 +134,9 @@ public class Jokit extends Application {
         serverTcpButton.setOnMouseClicked(e -> {
             try {
                 if (null == tcpServer) {
-                    tcpServer = new TcpServer(serverTcpAddrComboBox.getValue(), Utils.parsePort(serverTcpPortTextField.getText()));
+                    String ip = serverTcpAddrComboBox.getValue();
+                    int port =  Utils.parsePort(serverTcpPortTextField.getText());
+                    tcpServer = new TcpServer(ip, port);
                     tcpServer.addIncomingListener(address ->
                             Platform.runLater(() -> {
                                 String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
@@ -160,10 +162,16 @@ public class Jokit extends Application {
                                 serverAppendLog("TCP断开:" + temp);
                             })
                     );
+                    tcpServer.addClientMessageListener((address, s) -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        serverAppendLog("TCP收到:" + temp + ":" + s);
+                    });
                     tcpServer.start();
+                    serverAppendLog("TCP监听:" + ip + ":" + port);
                     serverTcpButton.setText(SERVER_TCP_UNBIND);
                 } else {
                     tcpServer.close();
+                    serverAppendLog("TCP停止:" + tcpServer.getIp() + ":" + tcpServer.getPort());
                     tcpServer = null;
                     serverTcpButton.setText(SERVER_TCP_BIND);
                 }
@@ -206,9 +214,28 @@ public class Jokit extends Application {
 
         serverClientsControlSelectAll.setMinWidth(80);
         serverClientsControlSelectAll.setMinHeight(22);
+        serverClientsControlSelectAll.setOnMouseClicked(e -> {
+            for (CheckBox c : serverClients.keySet()) {
+                c.selectedProperty().setValue(true);
+            }
+        });
 
         serverClientsControlDisconnect.setMinWidth(80);
         serverClientsControlDisconnect.setMinHeight(22);
+        serverClientsControlDisconnect.setOnMouseClicked(event -> {
+            if (!tcpServer.isStart()) {
+                serverAppendLog("TCP服务器未启动");
+            }
+            serverClients.forEach((checkBox, address) -> {
+                if (checkBox.selectedProperty().getValue()) {
+                    try {
+                        tcpServer.disconnect(address);
+                    } catch (TcpServerException e) {
+                        serverAppendLog(e.getMessage());
+                    }
+                }
+            });
+        });
 
         serverClientsControlVBox.getChildren().addAll(serverClientsControlSelectAll, serverClientsControlDisconnect);
         serverClientsControlVBox.setSpacing(10);
@@ -236,7 +263,7 @@ public class Jokit extends Application {
         serverSendVBox.setSpacing(5);
 
         //server output
-        serverOutput.setDisable(true);
+        serverOutput.setEditable(false);
         serverOutput.setMaxHeight(Double.POSITIVE_INFINITY);
 
         serverVBox.getChildren().addAll(serverTitle, serverInputVBox, serverClientsHBox, serverSendVBox, serverOutput);
@@ -292,7 +319,7 @@ public class Jokit extends Application {
         clientSendVBox.setSpacing(5);
 
         //client output
-        clientOutput.setDisable(true);
+        clientOutput.setEditable(false);
         clientOutput.setMaxHeight(Double.POSITIVE_INFINITY);
 
         clientVBox.getChildren().addAll(clientTitle, clientInputHBox, clientSendVBox, clientOutput);
@@ -320,8 +347,8 @@ public class Jokit extends Application {
     }
 
     public void serverAppendLog(String msg) {
-        String old = serverOutput.getText();
-        serverOutput.setText(old + Utils.generateLog(msg));
+
+        serverOutput.appendText(Utils.generateLog(msg));
     }
 
 }

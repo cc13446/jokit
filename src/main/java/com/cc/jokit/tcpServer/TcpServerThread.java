@@ -10,6 +10,7 @@ import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.apache.commons.lang3.ObjectUtils;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -39,6 +40,7 @@ public class TcpServerThread implements Callable<Void> {
         this.channelMap = new ConcurrentHashMap<>();
         this.tcpEventListener = tcpEventListener;
         this.tcpEventListener.addIncomingRichListener((channelMap::put));
+        this.tcpEventListener.addLeaveListener(channelMap::remove);
     }
 
     public String getIp() {
@@ -86,5 +88,13 @@ public class TcpServerThread implements Callable<Void> {
             bossGroup.shutdownGracefully();
         }
         return null;
+    }
+
+    public void disconnect(InetSocketAddress address) throws TcpServerException {
+        NioSocketChannel channel = channelMap.getOrDefault(address, null);
+        if (ObjectUtils.isEmpty(channel)) {
+            throw new TcpServerException("TCP客户端不存在:" + address);
+        }
+        channel.disconnect();
     }
 }

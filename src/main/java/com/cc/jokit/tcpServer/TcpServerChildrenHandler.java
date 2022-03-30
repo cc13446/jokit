@@ -22,7 +22,7 @@ public class TcpServerChildrenHandler extends ChannelDuplexHandler {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         ByteBuf byteBuf = (ByteBuf) msg;
-        System.out.println(byteBuf.toString(CharsetUtil.UTF_8));
+        tcpEventListener.invokeClientMessageListener((InetSocketAddress) ctx.channel().remoteAddress(), byteBuf.toString(CharsetUtil.UTF_8));
     }
 
     @Override
