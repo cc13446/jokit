@@ -1,6 +1,5 @@
 package com.cc.jokit.udpServer;
 
-import com.cc.jokit.tcpServer.TcpServer;
 import com.cc.jokit.tcpServer.TcpServerException;
 import io.netty.util.internal.StringUtil;
 
@@ -19,7 +18,7 @@ public class UdpServer {
     }
 
     private final UdpServerThread udpServerThread;
-    private final UdpEventListener udpEventListener;
+    private final UdpServerEventListener udpServerEventListener;
     private final CompletionService<Void> completionService;
     private volatile State serverState;
 
@@ -34,8 +33,8 @@ public class UdpServer {
         }
 
         this.completionService = new ExecutorCompletionService<>(Executors.newSingleThreadExecutor());
-        this.udpEventListener = new UdpEventListener();
-        this.udpServerThread = new UdpServerThread(ip, port, this.udpEventListener);
+        this.udpServerEventListener = new UdpServerEventListener();
+        this.udpServerThread = new UdpServerThread(ip, port, this.udpServerEventListener);
         this.serverState = State.READY;
     }
 
@@ -78,22 +77,22 @@ public class UdpServer {
 
     public void addIncomingListener(BiConsumer<InetSocketAddress, String> c) throws UdpServerException {
         checkStateBeforeAddListener();
-        udpEventListener.addIncomingListener(c);
+        udpServerEventListener.addIncomingListener(c);
     }
 
     public void addClientWriteCompleteListener(BiConsumer<InetSocketAddress, String> consumer) throws UdpServerException {
         checkStateBeforeAddListener();
-        udpEventListener.addClientWriteCompleteListener(consumer);
+        udpServerEventListener.addClientWriteCompleteListener(consumer);
     }
 
-    public void addClientWriteUncompletedListener(BiConsumer<InetSocketAddress, Throwable> consumer) throws UdpServerException {
+    public void addClientWriteFailListener(BiConsumer<InetSocketAddress, Throwable> consumer) throws UdpServerException {
         checkStateBeforeAddListener();
-        udpEventListener.addClientWriteUncompletedListener(consumer);
+        udpServerEventListener.addClientWriteFailListener(consumer);
     }
 
     public void addErrorBindListener(Consumer<Throwable> consumer) throws UdpServerException {
         checkStateBeforeAddListener();
-        udpEventListener.addErrorBindListener(consumer);
+        udpServerEventListener.addErrorBindListener(consumer);
     }
 
 }

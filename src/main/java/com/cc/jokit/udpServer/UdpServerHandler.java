@@ -8,16 +8,16 @@ import java.nio.charset.StandardCharsets;
 
 public class UdpServerHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
-    private final UdpEventListener udpEventListener;
+    private final UdpServerEventListener udpServerEventListener;
 
 
-    public UdpServerHandler(UdpEventListener udpEventListener) {
-        this.udpEventListener = udpEventListener;
+    public UdpServerHandler(UdpServerEventListener udpServerEventListener) {
+        this.udpServerEventListener = udpServerEventListener;
     }
 
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, DatagramPacket datagramPacket) {
-        udpEventListener.invokeIncomingListener(datagramPacket.sender(), datagramPacket.content().toString(StandardCharsets.UTF_8));
+        udpServerEventListener.invokeIncomingListener(datagramPacket.sender(), datagramPacket.content().toString(StandardCharsets.UTF_8));
     }
 }

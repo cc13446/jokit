@@ -8,23 +8,23 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class TcpEventListener {
+public class TcpServerEventListener {
     private final List<Consumer<InetSocketAddress>> incomingListener;
     private final List<BiConsumer<InetSocketAddress, NioSocketChannel>> incomingRichListener;
     private final List<Consumer<InetSocketAddress>> leaveListener;
     private final List<BiConsumer<InetSocketAddress, String>> clientMessageListener;
     private final List<BiConsumer<InetSocketAddress, String>> clientWriteCompleteListener;
-    private final List<BiConsumer<InetSocketAddress, Throwable>> clientWriteUncompletedListener;
+    private final List<BiConsumer<InetSocketAddress, Throwable>> clientWriteFailListener;
     private final List<Consumer<Throwable>> errorBindListener;
 
 
-    public TcpEventListener () {
+    public TcpServerEventListener() {
         this.incomingListener = new LinkedList<>();
         this.incomingRichListener = new LinkedList<>();
         this.leaveListener = new LinkedList<>();
         this.clientMessageListener = new LinkedList<>();
         this.clientWriteCompleteListener = new LinkedList<>();
-        this.clientWriteUncompletedListener = new LinkedList<>();
+        this.clientWriteFailListener = new LinkedList<>();
         this.errorBindListener = new LinkedList<>();
 
     }
@@ -79,12 +79,12 @@ public class TcpEventListener {
         }
     }
 
-    public void addClientWriteUncompletedListener(BiConsumer<InetSocketAddress, Throwable> consumer) {
-        clientWriteUncompletedListener.add(consumer);
+    public void addClientWriteFailListener(BiConsumer<InetSocketAddress, Throwable> consumer) {
+        clientWriteFailListener.add(consumer);
     }
 
-    public void invokeClientWriteUncompletedListener(InetSocketAddress address, Throwable t) {
-        for(BiConsumer<InetSocketAddress, Throwable> c : clientWriteUncompletedListener) {
+    public void invokeClientWriteFailListener(InetSocketAddress address, Throwable t) {
+        for(BiConsumer<InetSocketAddress, Throwable> c : clientWriteFailListener) {
             c.accept(address, t);
         }
     }

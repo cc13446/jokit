@@ -6,16 +6,16 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class UdpEventListener {
-    private List<BiConsumer<InetSocketAddress, String>> incomingListener;
+public class UdpServerEventListener {
+    private final List<BiConsumer<InetSocketAddress, String>> incomingListener;
     private final List<BiConsumer<InetSocketAddress, String>> clientWriteCompleteListener;
-    private final List<BiConsumer<InetSocketAddress, Throwable>> clientWriteUncompletedListener;
+    private final List<BiConsumer<InetSocketAddress, Throwable>> clientWriteFailListener;
     private final List<Consumer<Throwable>> errorBindListener;
 
-    public UdpEventListener() {
+    public UdpServerEventListener() {
         this.incomingListener = new LinkedList<>();
         this.clientWriteCompleteListener = new LinkedList<>();
-        this.clientWriteUncompletedListener = new LinkedList<>();
+        this.clientWriteFailListener = new LinkedList<>();
         this.errorBindListener = new LinkedList<>();
     }
 
@@ -39,12 +39,12 @@ public class UdpEventListener {
         }
     }
 
-    public void addClientWriteUncompletedListener(BiConsumer<InetSocketAddress, Throwable> consumer) {
-        clientWriteUncompletedListener.add(consumer);
+    public void addClientWriteFailListener(BiConsumer<InetSocketAddress, Throwable> consumer) {
+        clientWriteFailListener.add(consumer);
     }
 
-    public void invokeClientWriteUncompletedListener(InetSocketAddress address, Throwable t) {
-        for(BiConsumer<InetSocketAddress, Throwable> c : clientWriteUncompletedListener) {
+    public void invokeClientWriteFailListener(InetSocketAddress address, Throwable t) {
+        for(BiConsumer<InetSocketAddress, Throwable> c : clientWriteFailListener) {
             c.accept(address, t);
         }
     }

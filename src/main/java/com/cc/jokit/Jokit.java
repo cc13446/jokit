@@ -1,7 +1,11 @@
 package com.cc.jokit;
 
+import com.cc.jokit.tcpClient.TcpClient;
+import com.cc.jokit.tcpClient.TcpClientException;
 import com.cc.jokit.tcpServer.TcpServer;
 import com.cc.jokit.tcpServer.TcpServerException;
+import com.cc.jokit.udpClient.UdpClient;
+import com.cc.jokit.udpClient.UdpClientException;
 import com.cc.jokit.udpServer.UdpServer;
 import com.cc.jokit.udpServer.UdpServerException;
 import javafx.application.Application;
@@ -117,6 +121,9 @@ public class Jokit extends Application {
     private static TcpServer tcpServer = null;
     private static UdpServer udpServer = null;
 
+    private static TcpClient tcpClient = null;
+    private static UdpClient udpClient = null;
+
     @Override
     public void start(Stage stage) {
 
@@ -146,7 +153,7 @@ public class Jokit extends Application {
                     tcpServer.addIncomingListener(address ->
                         Platform.runLater(() -> {
                             String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
-                            CheckBox newBox = new CheckBox(temp);
+                            CheckBox newBox = new CheckBox("[TCP]" + temp);
                             serverTCPClients.put(newBox, address);
                             serverClientsVBox.getChildren().add(newBox);
                             serverAppendLog("TCP连接:" + temp);
@@ -157,7 +164,7 @@ public class Jokit extends Application {
                             String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
                             CheckBox leave = null;
                             for (CheckBox c : serverTCPClients.keySet()) {
-                                if (c.textProperty().getValue().equals(temp)) {
+                                if (c.textProperty().getValue().equals("[TCP]" + temp)) {
                                     leave = c;
                                 }
                             }
@@ -180,7 +187,7 @@ public class Jokit extends Application {
                             serverAppendLog("TCP发送:" + temp + ":" + s);
                         })
                     );
-                    tcpServer.addClientWriteUncompletedListener((address, t) ->
+                    tcpServer.addClientWriteFailListener((address, t) ->
                         Platform.runLater(() -> {
                             String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
                             serverAppendLog("TCP发送失败:" + temp + ":" + t.getMessage());
@@ -242,7 +249,7 @@ public class Jokit extends Application {
                         Platform.runLater(() -> {
                             String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
                             if (!serverUDPClients.containsValue(address)) {
-                                CheckBox newBox = new CheckBox(temp);
+                                CheckBox newBox = new CheckBox("[UDP]" + temp);
                                 serverUDPClients.put(newBox, address);
                                 serverClientsVBox.getChildren().add(newBox);
                             }
@@ -253,7 +260,7 @@ public class Jokit extends Application {
                             String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
                             serverAppendLog("UDP发送:" + temp + ":" + s);
                     }));
-                    udpServer.addClientWriteUncompletedListener((address, t) ->
+                    udpServer.addClientWriteFailListener((address, t) ->
                         Platform.runLater(() -> {
                             String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
                             serverAppendLog("UDP发送失败:" + temp + ":" + t.getMessage());
@@ -447,9 +454,133 @@ public class Jokit extends Application {
 
         clientTcpButton.setMinWidth(70);
         clientTcpButton.setMinHeight(20);
+        clientTcpButton.setOnMouseClicked(event -> {
+            try {
+                if (ObjectUtils.isEmpty(tcpClient)) {
+                    if(ObjectUtils.isNotEmpty(udpClient)) {
+                        udpClient.close();
+                        udpClient = null;
+                        clientUdpButton.setText(CLIENT_UDP_CONNECT);
+                    }
+                    String ip = clientAddrTextField.getText();
+                    int port = Utils.parsePort(clientPortTextField.getText());
+                    tcpClient = new TcpClient(ip, port);
+                    tcpClient.addSuccessConnectListener(address -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("TCP连接成功 本地地址:" + temp + " " + "远端地址" + tcpClient.getRemoteIp() + ":" + tcpClient.getRemotePort());
+                    }));
+                    tcpClient.addErrorConnectListener(error -> Platform.runLater(() -> {
+                        clientAppendLog("TCP连接失败:" + error.getMessage());
+                        try {
+                            tcpClient.close();
+                        } catch (TcpClientException e) {
+                            clientAppendLog(e.getMessage());
+                        }
+                        tcpClient = null;
+                        clientTcpButton.setText(CLIENT_TCP_CONNECT);
+                    }));
+                    tcpClient.addMessageListener((address, s) -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("TCP收到:" + temp + ":" + s);
+                    }));
+                    tcpClient.addWriteCompleteListener((address, s) -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("TCP发送:" + temp + ":" + s);
+                    }));
+                    tcpClient.addWriteFailListener((address, throwable) -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("TCP发送失败:" + temp + ":" + throwable.getMessage());
+                    }));
+                    tcpClient.addDisconnectListener(address -> Platform.runLater(() ->{
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("TCP断开成功 本地地址:" + temp);
+                    }));
+                    tcpClient.addDisconnectFailListener((address, throwable) -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("TCP断开失败 本地地址:" + temp + ":" + throwable.getMessage());
+                    }));
+                    tcpClient.connect();
+                    clientTcpButton.setText(CLIENT_TCP_DISCONNECT);
+                } else {
+                    tcpClient.close();
+                    tcpClient = null;
+                    clientTcpButton.setText(CLIENT_TCP_CONNECT);
+                }
+            } catch (UdpClientException e) {
+                clientAppendLog(e.getMessage());
+                udpClient = null;
+                clientUdpButton.setText(CLIENT_UDP_CONNECT);
+            } catch (JokitException | TcpClientException e) {
+                clientAppendLog(e.getMessage());
+                tcpClient = null;
+                clientTcpButton.setText(CLIENT_TCP_CONNECT);
+            }
+        });
 
         clientUdpButton.setMinWidth(70);
         clientUdpButton.setMinHeight(20);
+        clientUdpButton.setOnMouseClicked(event -> {
+            try {
+                if (ObjectUtils.isEmpty(udpClient)) {
+                    if(ObjectUtils.isNotEmpty(tcpClient)) {
+                        tcpClient.close();
+                        tcpClient = null;
+                        clientTcpButton.setText(CLIENT_TCP_CONNECT);
+                    }
+                    String ip = clientAddrTextField.getText();
+                    int port = Utils.parsePort(clientPortTextField.getText());
+                    udpClient = new UdpClient(ip, port);
+                    udpClient.addSuccessBindListener(address -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("UDP连接成功 本地地址:" + temp + " " + "远端地址" + udpClient.getRemoteIp() + ":" + udpClient.getRemotePort());
+                    }));
+                    udpClient.addErrorBindListener(error -> Platform.runLater(() -> {
+                        clientAppendLog("UDP连接失败:" + error.getMessage());
+                        try {
+                            udpClient.close();
+                        } catch (UdpClientException e) {
+                            clientAppendLog(e.getMessage());
+                        }
+                        udpClient = null;
+                        clientUdpButton.setText(CLIENT_UDP_CONNECT);
+                    }));
+                    udpClient.addMessageListener((address, s) -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("UDP收到:" + temp + ":" + s);
+                    }));
+                    udpClient.addWriteCompleteListener((address, s) -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("UDP发送:" + temp + ":" + s);
+                    }));
+                    udpClient.addWriteFailListener((address, throwable) -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("UDP发送失败:" + temp + ":" + throwable.getMessage());
+                    }));
+                    udpClient.addDisconnectListener(address -> Platform.runLater(() ->{
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("UDP关闭成功 本地地址:" + temp);
+                    }));
+                    udpClient.addDisconnectFailListener((address, throwable) -> Platform.runLater(() -> {
+                        String temp = Utils.parseHostAndPort(address.getAddress(), address.getPort());
+                        clientAppendLog("UDP关闭失败 本地地址:" + temp + ":" + throwable.getMessage());
+                    }));
+                    udpClient.bind();
+                    clientUdpButton.setText(CLIENT_UDP_DISCONNECT);
+                } else {
+                    udpClient.close();
+                    udpClient = null;
+                    clientUdpButton.setText(CLIENT_UDP_CONNECT);
+                }
+            } catch (TcpClientException e) {
+                clientAppendLog(e.getMessage());
+                tcpClient = null;
+                clientTcpButton.setText(CLIENT_TCP_CONNECT);
+            } catch (JokitException |  UdpClientException e) {
+                clientAppendLog(e.getMessage());
+                udpClient = null;
+                clientUdpButton.setText(CLIENT_UDP_CONNECT);
+            }
+        });
 
         clientInputHBox.getChildren().addAll(clientAddrTextField, clientPortTextField, clientTcpButton, clientUdpButton);
         HBox.setHgrow(clientAddrTextField, Priority.SOMETIMES);
@@ -459,6 +590,14 @@ public class Jokit extends Application {
         //client buffer
         clientBufferSendButton.setMinWidth(80);
         clientBufferSendButton.setMinHeight(22);
+        clientBufferSendButton.setOnMouseClicked(event -> {
+            if (ObjectUtils.isNotEmpty(tcpClient) && tcpClient.isStart()) {
+                tcpClient.write(clientBufferTextField.getText());
+            }
+            if (ObjectUtils.isNotEmpty(udpClient) && udpClient.isStart()) {
+                udpClient.write(clientBufferTextField.getText());
+            }
+        });
         clientBufferHBox.getChildren().addAll(clientBufferTextField, clientBufferSendButton);
         clientBufferHBox.setSpacing(2);
         HBox.setHgrow(clientBufferTextField, Priority.SOMETIMES);
@@ -466,6 +605,19 @@ public class Jokit extends Application {
         //client ascii
         clientBufferAsciiSendButton.setMinWidth(80);
         clientBufferAsciiSendButton.setMinHeight(22);
+        clientBufferAsciiSendButton.setOnMouseClicked(event -> {
+            try {
+                String temp = Utils.asciiToString(clientBufferAsciiTextField.getText());
+                if (ObjectUtils.isNotEmpty(tcpClient) && tcpClient.isStart()) {
+                    tcpClient.write(temp);
+                }
+                if (ObjectUtils.isNotEmpty(udpClient) && udpClient.isStart()) {
+                    udpClient.write(temp);
+                }
+            } catch (JokitException e) {
+               clientAppendLog(e.getMessage());
+            }
+        });
         clientBufferAsciiHBox.getChildren().addAll(clientBufferAsciiTextField, clientBufferAsciiSendButton);
         clientBufferAsciiHBox.setSpacing(2);
         HBox.setHgrow(clientBufferAsciiTextField, Priority.SOMETIMES);
@@ -504,6 +656,11 @@ public class Jokit extends Application {
     public void serverAppendLog(String msg) {
 
         serverOutput.appendText(Utils.generateLog(msg));
+    }
+
+    public void clientAppendLog(String msg) {
+
+        clientOutput.appendText(Utils.generateLog(msg));
     }
 
 }

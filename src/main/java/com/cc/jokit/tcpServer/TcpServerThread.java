@@ -12,7 +12,6 @@ import io.netty.util.CharsetUtil;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -30,16 +29,16 @@ public class TcpServerThread implements Callable<Void> {
     private final String ip;
     private final int port;
     private final Map<InetSocketAddress, NioSocketChannel> channelMap;
-    private final TcpEventListener tcpEventListener;
+    private final TcpServerEventListener tcpServerEventListener;
 
-    public TcpServerThread(String ip, int port,  TcpEventListener tcpEventListener) {
+    public TcpServerThread(String ip, int port,  TcpServerEventListener tcpServerEventListener) {
         super();
         this.ip = ip;
         this.port = port;
         this.channelMap = new ConcurrentHashMap<>();
-        this.tcpEventListener = tcpEventListener;
-        this.tcpEventListener.addIncomingRichListener((channelMap::put));
-        this.tcpEventListener.addLeaveListener(channelMap::remove);
+        this.tcpServerEventListener = tcpServerEventListener;
+        this.tcpServerEventListener.addIncomingRichListener((channelMap::put));
+        this.tcpServerEventListener.addLeaveListener(channelMap::remove);
     }
 
     public String getIp() {
@@ -68,20 +67,20 @@ public class TcpServerThread implements Callable<Void> {
                         // 监听bind行为
                         @Override
                         protected void initChannel(ServerSocketChannel serverSocketChannel) {
-                            serverSocketChannel.pipeline().addLast(new TcpServerHandler(tcpEventListener));
+                            serverSocketChannel.pipeline().addLast(new TcpServerHandler(tcpServerEventListener));
                         }
                     })
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         // 这个方法将自定义的ChannelHandler安装到ChannelPipeline
                         @Override
                         protected void initChannel(SocketChannel socketChannel) {
-                            socketChannel.pipeline().addLast(new TcpServerChildrenHandler(tcpEventListener));
+                            socketChannel.pipeline().addLast(new TcpServerChildrenHandler(tcpServerEventListener));
                         }
                     });
             ChannelFuture channelFuture = serverBootstrap.bind();
             channelFuture.addListener((ChannelFutureListener) future -> {
                 if (!future.isSuccess()){
-                    tcpEventListener.invokeErrorBindListener(future.cause());
+                    tcpServerEventListener.invokeErrorBindListener(future.cause());
                 }
             });
             channelFuture.sync();
@@ -89,7 +88,7 @@ public class TcpServerThread implements Callable<Void> {
             // 阻塞到Channel关闭
             serverChannel.closeFuture().sync();
         } catch (InterruptedException e){
-            tcpEventListener.invokeErrorBindListener(e);
+            tcpServerEventListener.invokeErrorBindListener(e);
         } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
@@ -113,9 +112,9 @@ public class TcpServerThread implements Callable<Void> {
         ChannelFuture channelFuture = channel.writeAndFlush(Unpooled.copiedBuffer(buffer, CharsetUtil.UTF_8));
         channelFuture.addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()){
-                tcpEventListener.invokeClientWriteCompleteListener(address, buffer);
+                tcpServerEventListener.invokeClientWriteCompleteListener(address, buffer);
             }else{
-                tcpEventListener.invokeClientWriteUncompletedListener(address, future.cause());
+                tcpServerEventListener.invokeClientWriteFailListener(address, future.cause());
             }
         });
     }

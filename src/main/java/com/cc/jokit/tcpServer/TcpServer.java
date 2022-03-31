@@ -15,7 +15,7 @@ public class TcpServer {
 
     private final TcpServerThread tcpServerThread;
     private final CompletionService<Void> completionService;
-    private final TcpEventListener tcpEventListener;
+    private final TcpServerEventListener tcpServerEventListener;
     private volatile State serverState;
 
 
@@ -28,8 +28,8 @@ public class TcpServer {
         }
 
         this.completionService = new ExecutorCompletionService<>(Executors.newSingleThreadExecutor());
-        this.tcpEventListener = new TcpEventListener();
-        this.tcpServerThread = new TcpServerThread(ip, port, this.tcpEventListener);
+        this.tcpServerEventListener = new TcpServerEventListener();
+        this.tcpServerThread = new TcpServerThread(ip, port, this.tcpServerEventListener);
         this.serverState = State.READY;
     }
 
@@ -75,32 +75,32 @@ public class TcpServer {
 
     public void addIncomingListener(Consumer<InetSocketAddress> consumer) throws TcpServerException {
         checkStateBeforeAddListener();
-        tcpEventListener.addIncomingListener(consumer);
+        tcpServerEventListener.addIncomingListener(consumer);
     }
 
     public void addLeaveListener(Consumer<InetSocketAddress> consumer) throws TcpServerException {
         checkStateBeforeAddListener();
-        tcpEventListener.addLeaveListener(consumer);
+        tcpServerEventListener.addLeaveListener(consumer);
     }
 
     public void addClientMessageListener(BiConsumer<InetSocketAddress, String> consumer) throws TcpServerException {
         checkStateBeforeAddListener();
-        tcpEventListener.addClientMessageListener(consumer);
+        tcpServerEventListener.addClientMessageListener(consumer);
     }
 
     public void addClientWriteCompleteListener(BiConsumer<InetSocketAddress, String> consumer) throws TcpServerException {
         checkStateBeforeAddListener();
-        tcpEventListener.addClientWriteCompleteListener(consumer);
+        tcpServerEventListener.addClientWriteCompleteListener(consumer);
     }
 
-    public void addClientWriteUncompletedListener(BiConsumer<InetSocketAddress, Throwable> consumer) throws TcpServerException {
+    public void addClientWriteFailListener(BiConsumer<InetSocketAddress, Throwable> consumer) throws TcpServerException {
         checkStateBeforeAddListener();
-        tcpEventListener.addClientWriteUncompletedListener(consumer);
+        tcpServerEventListener.addClientWriteFailListener(consumer);
     }
 
     public void addErrorBindListener(Consumer<Throwable> consumer) throws TcpServerException {
         checkStateBeforeAddListener();
-        tcpEventListener.addErrorBindListener(consumer);
+        tcpServerEventListener.addErrorBindListener(consumer);
     }
 
 }

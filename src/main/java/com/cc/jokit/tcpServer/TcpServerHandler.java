@@ -5,17 +5,17 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 public class TcpServerHandler extends ChannelDuplexHandler {
-    private final TcpEventListener tcpEventListener;
+    private final TcpServerEventListener tcpServerEventListener;
 
-    public TcpServerHandler(TcpEventListener tcpEventListener) {
-        this.tcpEventListener = tcpEventListener;
+    public TcpServerHandler(TcpServerEventListener tcpServerEventListener) {
+        this.tcpServerEventListener = tcpServerEventListener;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         NioSocketChannel socketChannel = (NioSocketChannel) msg;
-        tcpEventListener.invokeIncomingListener(socketChannel.remoteAddress());
-        tcpEventListener.invokeIncomingRichListener(socketChannel.remoteAddress(), socketChannel);
+        tcpServerEventListener.invokeIncomingListener(socketChannel.remoteAddress());
+        tcpServerEventListener.invokeIncomingRichListener(socketChannel.remoteAddress(), socketChannel);
 
         ctx.fireChannelRead(msg);
     }

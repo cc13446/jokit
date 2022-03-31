@@ -4,7 +4,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.CharsetUtil;
 
 import java.net.InetSocketAddress;
@@ -13,21 +12,21 @@ import java.net.InetSocketAddress;
 @ChannelHandler.Sharable
 public class TcpServerChildrenHandler extends ChannelDuplexHandler {
 
-    private final TcpEventListener tcpEventListener;
+    private final TcpServerEventListener tcpServerEventListener;
 
-    public TcpServerChildrenHandler(TcpEventListener tcpEventListener) {
-        this.tcpEventListener = tcpEventListener;
+    public TcpServerChildrenHandler(TcpServerEventListener tcpServerEventListener) {
+        this.tcpServerEventListener = tcpServerEventListener;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         ByteBuf byteBuf = (ByteBuf) msg;
-        tcpEventListener.invokeClientMessageListener((InetSocketAddress) ctx.channel().remoteAddress(), byteBuf.toString(CharsetUtil.UTF_8));
+        tcpServerEventListener.invokeClientMessageListener((InetSocketAddress) ctx.channel().remoteAddress(), byteBuf.toString(CharsetUtil.UTF_8));
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        tcpEventListener.invokeLeaveListener((InetSocketAddress) ctx.channel().remoteAddress());
+        tcpServerEventListener.invokeLeaveListener((InetSocketAddress) ctx.channel().remoteAddress());
     }
 
     @Override

@@ -1,23 +1,15 @@
 package com.cc.jokit.udpServer;
 
-import com.cc.jokit.tcpServer.TcpServerException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.CharsetUtil;
-import org.apache.commons.lang3.ObjectUtils;
 
 import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class UdpServerThread implements Callable<Void> {
 
@@ -32,14 +24,14 @@ public class UdpServerThread implements Callable<Void> {
 
     private final String ip;
     private final int port;
-    private final UdpEventListener udpEventListener;
+    private final UdpServerEventListener udpServerEventListener;
 
 
 
-    public UdpServerThread(String ip, int port, UdpEventListener udpEventListener) {
+    public UdpServerThread(String ip, int port, UdpServerEventListener udpServerEventListener) {
         this.ip = ip;
         this.port = port;
-        this.udpEventListener = udpEventListener;
+        this.udpServerEventListener = udpServerEventListener;
     }
 
     public String getIp() {
@@ -51,7 +43,7 @@ public class UdpServerThread implements Callable<Void> {
     }
 
     @Override
-    public Void call() throws InterruptedException {
+    public Void call() {
 
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         try {
@@ -65,13 +57,13 @@ public class UdpServerThread implements Callable<Void> {
                         // 监听bind行为
                         @Override
                         protected void initChannel(NioDatagramChannel nioDatagramChannel) {
-                            nioDatagramChannel.pipeline().addLast(new UdpServerHandler(udpEventListener));
+                            nioDatagramChannel.pipeline().addLast(new UdpServerHandler(udpServerEventListener));
                         }
                     });
             ChannelFuture channelFuture = bootstrap.bind();
             channelFuture.addListener(future -> {
                 if(!future.isSuccess()) {
-                    udpEventListener.invokeErrorBindListener(future.cause());
+                    udpServerEventListener.invokeErrorBindListener(future.cause());
                 }
             });
             channelFuture.sync();
@@ -79,7 +71,7 @@ public class UdpServerThread implements Callable<Void> {
             serverChannel.closeFuture().sync();
 
         } catch (InterruptedException e) {
-            udpEventListener.invokeErrorBindListener(e);
+            udpServerEventListener.invokeErrorBindListener(e);
         } finally {
             bossGroup.shutdownGracefully();
         }
@@ -91,9 +83,9 @@ public class UdpServerThread implements Callable<Void> {
         ChannelFuture channelFuture = serverChannel.writeAndFlush(new DatagramPacket(Unpooled.copiedBuffer(buffer, CharsetUtil.UTF_8), address));
         channelFuture.addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()){
-                udpEventListener.invokeClientWriteCompleteListener(address, buffer);
+                udpServerEventListener.invokeClientWriteCompleteListener(address, buffer);
             }else{
-                udpEventListener.invokeClientWriteUncompletedListener(address, future.cause());
+                udpServerEventListener.invokeClientWriteFailListener(address, future.cause());
             }
         });
     }
