@@ -650,6 +650,42 @@ public class Jokit extends Application {
         stage.setWidth(800);
         stage.setMinHeight(500);
         stage.setMinWidth(800);
+        stage.setOnCloseRequest(windowEvent -> {
+            if (ObjectUtils.isNotEmpty(tcpServer)) {
+                try {
+                    tcpServer.close();
+                    tcpServer = null;
+                } catch (TcpServerException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (ObjectUtils.isNotEmpty(udpServer)) {
+                try {
+                    udpServer.close();
+                    udpServer = null;
+                } catch (UdpServerException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (ObjectUtils.isNotEmpty(tcpClient)) {
+                try {
+                    tcpClient.close();
+                    tcpClient = null;
+                } catch (TcpClientException e) {
+                    e.printStackTrace();
+                }
+
+            }
+            if (ObjectUtils.isNotEmpty(udpClient)) {
+                try {
+                    udpClient.close();
+                    udpClient = null;
+                } catch (UdpClientException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
         stage.show();
     }
 
